@@ -23,6 +23,13 @@ if [ "$choice" -eq 1 ]; then
     npm uninstall -g @anthropic-ai/claude-code 2>/dev/null || true
     npm install -g @anthropic-ai/claude-code@2.1.112
 
+    echo "[*] Configuring PATH for npm global binaries..."
+    NPM_BIN="$(npm root -g)/../.bin"
+    if ! grep -qF "$NPM_BIN" ~/.bashrc 2>/dev/null; then
+        echo "export PATH=\"\$PATH:$NPM_BIN\"" >> ~/.bashrc
+    fi
+    export PATH="$PATH:$NPM_BIN"
+
     echo ""
     echo "=========================================="
     echo "  Installation complete!"
