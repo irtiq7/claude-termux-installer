@@ -6,7 +6,7 @@ echo "   Claude Code Termux Installer Script    "
 echo "=========================================="
 echo ""
 echo "Choose installation method:"
-echo "  1) Pure JS Fallback  - Fastest, runs version 2.1.112 (last JS-only build)"
+echo "  1) Pure JS Fallback  - Fastest, runs version 1.0.128 (last JS-only build)"
 echo "  2) PRoot Ubuntu      - Supports the LATEST native claude-code versions"
 echo ""
 read -p "Enter choice [1-2]: " choice
@@ -17,18 +17,34 @@ pkg update -y && pkg upgrade -y
 
 if [ "$choice" -eq 1 ]; then
     echo "[*] Installing dependencies..."
-    pkg install nodejs git ripgrep openssh -y
+    pkg install nodejs-lts git ripgrep openssh -y
 
-    echo "[*] Installing claude-code@2.1.112 (pure JS build)..."
+    echo "[*] Installing claude-code@1.0.128 (pure JS build)..."
     npm uninstall -g @anthropic-ai/claude-code 2>/dev/null || true
-    npm install -g @anthropic-ai/claude-code@2.1.112
+    npm uninstall -g @anthropic-ai/claude-code-linux-arm64 2>/dev/null || true
+    npm uninstall -g @anthropic-ai/claude-code-linux-arm64-musl 2>/dev/null || true
+    npm install -g @anthropic-ai/claude-code@1.0.128 --ignore-scripts
 
     echo "[*] Configuring PATH for npm global binaries..."
-    NPM_BIN="$(npm root -g)/../.bin"
+    NPM_BIN="$(npm prefix -g)/bin"
     if ! grep -qF "$NPM_BIN" ~/.bashrc 2>/dev/null; then
         echo "export PATH=\"\$PATH:$NPM_BIN\"" >> ~/.bashrc
     fi
     export PATH="$PATH:$NPM_BIN"
+
+    echo "[*] Disabling auto-update (prevents upgrade to incompatible 2.x)..."
+    mkdir -p "$HOME/.claude"
+    if [ ! -f "$HOME/.claude/settings.json" ]; then
+        echo '{"autoUpdaterStatus":"disabled"}' > "$HOME/.claude/settings.json"
+    else
+        # merge into existing settings using node
+        node -e "
+            const fs = require('fs');
+            const s = JSON.parse(fs.readFileSync('$HOME/.claude/settings.json', 'utf8'));
+            s.autoUpdaterStatus = 'disabled';
+            fs.writeFileSync('$HOME/.claude/settings.json', JSON.stringify(s, null, 2));
+        "
+    fi
 
     echo ""
     echo "=========================================="
